@@ -4,22 +4,44 @@
 // then the variable below would be 10px.
 $baseline-px: 10px;
 
-@mixin rem($property, $px-values) {
-  // Convert the baseline into rems
-  $baseline-rem: $baseline-px / 1rem * 1;
-  // Print the first line in pixel values
-  #{$property}: $px-values;
-  // If there is only one (numeric) value, return the property/value line for it.
-  @if type-of($px-values) == "number" {
-    #{$property}: $px-values / $baseline-rem; }
-  @else {
-    // Create an empty list that we can dump values into
+// Function to return a rem value given a px value
+// If the value passed is not a number in px then just returns the value
+@function get_rem($val) {
+    // Convert the baseline into rems
+    $baseline-rem: $baseline-px / 1rem * 1;
+    @if type-of($val) == "number" and unit($val) == px {
+        // If item is a number in px then return the conversion to rem
+        @return $val / $baseline-rem;
+    }
+    @else {
+        // Else just return the item
+        @return $val;
+    }
+}
+
+// This mixin can get one or more parameters
+@mixin rem($property, $params...) {
+    // Print the first line in pixel values
+    #{$property}: $params;
+    // Create a primary list that we can dump values into
     $rem-values: ();
-    @each $value in $px-values {
-      // If the value is zero or not a number, return it
-      @if $value == 0 or type-of( $value ) != "number" {
-        $rem-values: append($rem-values, $value); }
-      @else {
-        $rem-values: append($rem-values, $value / $baseline-rem); } }
+    // For each parameter given
+    @each $param in $params {
+        // If the parameter is a list then loop
+        // each list's item
+        @if type-of($param) == "list" {
+            // Create a temporary list to store the list's items
+            $list-values: ();
+            @each $item in $param {
+               $list-values: append($list-values, get_rem($item));
+            }
+            // Finally append the list-values to the primary list ussing commas
+            $rem-values: append($rem-values, $list-values, comma);
+        }
+        @else {
+            $rem-values: append($rem-values, get_rem($param));
+        } 
+    }
     // Return the property and its list of converted values
-    #{$property}: $rem-values; } }
+    #{$property}: $rem-values; 
+}
